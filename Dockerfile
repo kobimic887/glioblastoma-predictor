@@ -18,7 +18,6 @@ RUN pip install --no-cache-dir \
     joblib==1.3.2 \
     gunicorn==21.2.0 \
     pyOpenSSL==23.2.0
-    flask-cors==4.0.0
 
 # Copy application code
 COPY app.py .
