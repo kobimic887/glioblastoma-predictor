@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir \
     joblib==1.3.2 \
     gunicorn==21.2.0 \
     pyOpenSSL==23.2.0
+    flask-cors==4.0.0
 
 # Copy application code
 COPY app.py .
@@ -32,6 +33,7 @@ EXPOSE 5000
 # Health check (updated for HTTPS)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f -k https://localhost:5000/health || exit 1
+
 
 # Run application
 CMD ["python", "app.py"]
