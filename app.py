@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pandas as pd
 import numpy as np
 try:
@@ -15,9 +16,21 @@ import logging
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import warnings
+import ssl
+import os
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
+
+# Enable CORS for all routes and origins
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
+
 logging.basicConfig(level=logging.INFO)
 
 class DrugSensitivityPredictor:
@@ -347,4 +360,16 @@ def batch_predict():
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    # Check if SSL certificates exist
+    cert_file = 'cert.pem'
+    key_file = 'key.pem'
+    
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        # Run with HTTPS
+        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        context.load_cert_chain(cert_file, key_file)
+        app.run(host='0.0.0.0', port=5000, debug=False, ssl_context=context)
+    else:
+        # Fallback to HTTP (for development)
+        print("SSL certificates not found, running on HTTP")
+        app.run(host='0.0.0.0', port=5000, debug=False)
