@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pandas as pd
 import numpy as np
 try:
@@ -15,9 +16,21 @@ import logging
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import warnings
+import ssl
+import os
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
+
+# Enable CORS for all routes and origins
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
+
 logging.basicConfig(level=logging.INFO)
 
 class DrugSensitivityPredictor:
@@ -347,4 +360,66 @@ def batch_predict():
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    # SSL Certificate file paths - update these to match your certificate files
+    cert_file = 'chemtest_tech_fullchain.crt'
+    key_file = 'chemtest_tech_private.key'
+    
+    # Alternative certificate file names (in case you use different names)
+    alt_cert_file = 'chemtest_tech.crt'
+    alt_key_file = 'chemtest_tech_private.key'
+    
+    # Check for the full chain certificate first
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        print(f"Found SSL certificates: {cert_file} and {key_file}")
+        try:
+            # Create SSL context
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(cert_file, key_file)
+            
+            print("Starting Flask app with HTTPS on port 5000...")
+            print("Server will be accessible at:")
+            print("- https://chemtest.tech:5000")
+            print("- https://152.42.134.22:5000")
+            
+            app.run(
+                host='0.0.0.0', 
+                port=5000, 
+                debug=False, 
+                ssl_context=context
+            )
+        except Exception as e:
+            print(f"Error starting HTTPS server: {e}")
+            print("Falling back to HTTP...")
+            app.run(host='0.0.0.0', port=5000, debug=False)
+            
+    # Check for alternative certificate files
+    elif os.path.exists(alt_cert_file) and os.path.exists(alt_key_file):
+        print(f"Found SSL certificates: {alt_cert_file} and {alt_key_file}")
+        print("Warning: Using certificate without CA bundle. You should create a full chain certificate.")
+        try:
+            # Create SSL context
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(alt_cert_file, alt_key_file)
+            
+            print("Starting Flask app with HTTPS on port 5000...")
+            print("Server will be accessible at:")
+            print("- https://chemtest.tech:5000")
+            print("- https://152.42.134.22:5000")
+            
+            app.run(
+                host='0.0.0.0', 
+                port=5000, 
+                debug=False, 
+                ssl_context=context
+            )
+        except Exception as e:
+            print(f"Error starting HTTPS server: {e}")
+            print("Falling back to HTTP...")
+            app.run(host='0.0.0.0', port=5000, debug=False)
+    else:
+        # Fallback to HTTP (for development)
+        print("SSL certificates not found. Looking for:")
+        print(f"- {cert_file} and {key_file}")
+        print(f"- OR {alt_cert_file} and {alt_key_file}")
+        print("Running on HTTP instead...")
+        app.run(host='0.0.0.0', port=5000, debug=False)
